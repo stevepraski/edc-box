@@ -1,0 +1,19 @@
+---
+- name: Install audio things
+  apt:
+    name:
+      - alsa-base
+      - alsa-utils
+      - python-pip
+      - mplayer
+    state: present
+
+- name: Install streamlink
+  shell: |
+    pip install -U streamlink
+
+- name: Setup and initialize alsa
+  shell: |
+    usermod -a -G audio vagrant
+    alsa reload
+    amixer set Master 100 unmute
