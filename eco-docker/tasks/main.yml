@@ -1,0 +1,40 @@
+---
+- name: Make eco directory
+  file:
+    path: /opt/eco
+    state: directory
+    mode: 0755
+
+- name: Unarchive Eco package into /opt/eco
+  unarchive:
+    src: https://s3-us-west-2.amazonaws.com/eco-releases/{{ eco_server_zip }}
+    dest: /opt/eco
+    remote_src: yes
+
+- name: Update apt packages
+  apt:
+    update_cache: yes
+
+- name: Install pip
+  apt:
+    name:
+      - python-pip
+
+- name: Fix broken apt, because apt
+  shell: "apt -y --fix-broken install"
+
+- name: Install python API for docker
+  shell: "pip install docker-py"
+
+- name: Use a mono container to run Eco Server
+  docker_container:
+    name: 'eco-server'
+    image: mono:{{ mono_docker_version }}
+    state: started
+    pull: no # will pull if missing
+    ports:
+    - '3000:3000/udp'
+    - '3001:3001/tcp'
+    volumes:
+    - /opt/eco:/opt/eco:rw
+    command: 'sh -c "cd /opt/eco && /usr/bin/mono EcoServer.exe -nogui"'
