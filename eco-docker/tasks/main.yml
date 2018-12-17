@@ -15,13 +15,13 @@
   apt:
     update_cache: yes
 
+- name: Fix broken apt, because apt
+  shell: "apt -y --fix-broken install"
+
 - name: Install pip
   apt:
     name:
       - python-pip
-
-- name: Fix broken apt, because apt
-  shell: "apt -y --fix-broken install"
 
 - name: Install python API for docker
   shell: "pip install docker-py"
