@@ -1,0 +1,48 @@
+---
+- name: Add mono apt key
+  apt_key:
+    keyserver: keyserver.ubuntu.com
+    id: 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
+    state: present
+
+- name: Add mono apt repo
+  apt_repository:
+    repo: deb http://download.mono-project.com/repo/debian {{ ansible_distribution_release }}/snapshots/{{ mono_version }} main
+    filename: mono-official-stable
+    state: present
+
+- name: Update apt packages
+  apt:
+    update_cache: yes
+
+- name: Install dependencies
+  apt:
+    name:
+      - mono-runtime
+      - binutils
+      - mono-devel
+      - ca-certificates-mono
+      - fsharp
+      - mono-vbnc
+      - nuget
+      - referenceassemblies-pcl
+      - unzip
+      - vim
+    state: present
+
+- name: Make eco directory
+  file:
+    path: /opt/eco
+    state: directory
+    mode: 0755
+
+- name:
+  unarchive:
+    src: https://s3-us-west-2.amazonaws.com/eco-releases/{{ eco_server_zip }}
+    dest: /opt/eco
+    remote_src: yes
+
+- name: Start Eco server
+  shell: "/usr/bin/mono EcoServer.exe -nogui >/dev/null 2>&1 &"
+  args:
+    chdir: /opt/eco

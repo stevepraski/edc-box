@@ -2,17 +2,21 @@
 # vi: set ft=ruby :
 
 Vagrant.configure("2") do |config|
+
+  FileUtils.mkdir_p './opt'
+
   config.vm.box = "bento/ubuntu-18.04"
 
-  # config.vm.network "forwarded_port", guest: 80, host: 8080
-  # config.vm.network "forwarded_port", guest: 80, host: 8080, host_ip: "127.0.0.1"
-  # config.vm.network 'forwarded_port', guest: 3142, host: 3142
+  # eco server
+  config.vm.network "forwarded_port", guest: 3000, host: 3000, protocol: "udp"
+  config.vm.network "forwarded_port", guest: 3001, host: 3001, protocol: "tcp"
 
   config.vm.synced_folder ".", "/src"
+  config.vm.synced_folder "./opt", "/opt"
 
   config.vm.provider "virtualbox" do |vb|
     vb.gui = false
-    vb.memory = "1024"
+    vb.memory = "2000"
     if RUBY_PLATFORM =~ /darwin/
       vb.customize ["modifyvm", :id, '--audio', 'coreaudio', '--audiocontroller', 'hda'] # choices: hda sb16 ac97
     else
