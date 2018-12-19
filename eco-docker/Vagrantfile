@@ -3,7 +3,7 @@
 
 Vagrant.configure("2") do |config|
 
-  FileUtils.mkdir_p './opt/eco'
+  FileUtils.mkdir_p './eco'
 
   config.vm.box = "bento/ubuntu-18.04"
 
@@ -11,14 +11,29 @@ Vagrant.configure("2") do |config|
   config.vm.network "forwarded_port", guest: 3000, host: 3000, protocol: "udp"
   config.vm.network "forwarded_port", guest: 3001, host: 3001, protocol: "tcp"
 
-  config.vm.synced_folder ".", "/src"
-  config.vm.synced_folder "./opt/eco", "/opt/eco"
+  # config.vm.synced_folder "~/src/edc-box", "/opt/edc" # for dev debugging
+  config.vm.synced_folder "./eco", "/opt/eco"
 
   config.vm.provider "virtualbox" do |vb|
     vb.gui = false
     vb.memory = "2000"
+    vb.cpus = "2"
   end
 
-  config.vm.provision "shell", path: "bootstrap-eco-server.sh"
+  config.vm.provision "shell", inline: <<-SHELL
+    #!/bin/bash
+    set -e
+    apt-add-repository -y --update ppa:ansible/ansible
+    apt-get update
+    apt-get install -y software-properties-common curl
+    apt-get install -y ansible
+    mkdir -p /opt/eco-docker-bootstrap
+    cd /opt/eco-docker-bootstrap
+    curl -L https://api.github.com/repos/stevepraski/edc-box/tarball | tar -xzf - --strip-components=1
+  SHELL
+
+  config.vm.provision "shell", run: "always", inline: <<-SHELL
+    ansible-playbook /opt/eco-docker-bootstrap/eco-docker/eco-docker-playbook.yml --connection=local
+  SHELL
 
 end
