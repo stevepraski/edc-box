@@ -3,17 +3,25 @@
   apt:
     update_cache: yes
 
-# - name: Fix broken apt, because apt
-#   shell: "apt -y --fix-broken install"
-
 - name: Install pip
   apt:
     name:
       - python-pip
       - unzip
 
+- name: Check if docker-py is installed
+  shell: "pip show docker-py"
+  register: docker_py_exists
+  ignore_errors: True
+
 - name: Install python API for docker
   shell: "pip install docker-py"
+  when: docker_py_exists is failed
+
+- name: Find existing Eco version
+  shell: "cat /opt/eco/eco-version-lock"
+  register: eco_version_from_lock
+  ignore_errors: True
 
 - name: Make eco directory
   file:
@@ -26,11 +34,21 @@
     src: https://s3-us-west-2.amazonaws.com/eco-releases/EcoServer_v{{ eco_server_version }}.zip
     dest: /opt/eco
     remote_src: yes
+  register: eco_install_result
+  when: eco_version_from_lock.stdout.find(eco_server_version) != 0
 
 - name: Inject Difficulty
   template:
     src: Difficulty.eco
     dest: /opt/eco/Configs/Difficulty.eco
+  when: eco_install_result is not skipped
+
+- name: Create Eco version lock file
+  copy:
+    content: "{{ eco_server_version }}"
+    dest: /opt/eco/eco-version-lock
+    mode: 0644
+  when: eco_install_result is not skipped
 
 - name: Use a mono container to run Eco Server
   docker_container:
@@ -44,3 +62,9 @@
     volumes:
     - /opt/eco:/opt/eco:rw
     command: 'sh -c "cd /opt/eco && /usr/bin/mono EcoServer.exe -nogui"'
+
+- name: Force Eco server restart
+  docker_container:
+    name: 'eco-server'
+    restart: yes
+  when: eco_install_result is not skipped
