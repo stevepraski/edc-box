@@ -12,7 +12,7 @@
 - name: Check if docker-py is installed
   shell: "pip show docker-py"
   register: docker_py_exists
-  ignore_errors: True
+  ignore_errors: true
 
 - name: Install python API for docker
   shell: "pip install docker-py"
@@ -21,7 +21,7 @@
 - name: Find existing Eco version
   shell: "cat /opt/eco/eco-version-lock"
   register: eco_version_from_lock
-  ignore_errors: True
+  ignore_errors: true
 
 - name: Check existing Eco version
   set_fact:
@@ -38,7 +38,7 @@
     name: 'eco-server'
     state: stopped
   when: not verify_eco_version_result
-  ignore_errors: True # because you can't stop a non-existent container
+  ignore_errors: true # because you can't stop a non-existent container
 
 - name: Unarchive Eco package into /opt/eco
   unarchive:
@@ -68,8 +68,8 @@
     restart_policy: always
     pull: no # will pull if missing
     ports:
-    - '3000:3000/udp'
-    - '3001:3001/tcp'
+      - '3000:3000/udp'
+      - '3001:3001/tcp'
     volumes:
-    - /opt/eco:/opt/eco:rw
+      - /opt/eco:/opt/eco:rw
     command: 'sh -c "cd /opt/eco && /usr/bin/mono EcoServer.exe -nogui"'
