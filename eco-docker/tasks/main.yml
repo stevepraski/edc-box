@@ -23,38 +23,49 @@
   register: eco_version_from_lock
   ignore_errors: True
 
+- name: Check existing Eco version
+  set_fact:
+    verify_eco_version_result: "{{ eco_version_from_lock.stdout.find(eco_server_version) == 0 }}"
+
 - name: Make eco directory
   file:
     path: /opt/eco
     state: directory
     mode: 0755
 
+- name: Stop Eco Server
+  docker_container:
+    name: 'eco-server'
+    state: stopped
+  when: not verify_eco_version_result
+  ignore_errors: True # because you can't stop a non-existent container
+
 - name: Unarchive Eco package into /opt/eco
   unarchive:
     src: https://s3-us-west-2.amazonaws.com/eco-releases/EcoServer_v{{ eco_server_version }}.zip
     dest: /opt/eco
     remote_src: yes
-  register: eco_install_result
-  when: eco_version_from_lock.stdout.find(eco_server_version) != 0
+  when: not verify_eco_version_result
 
 - name: Inject Difficulty
   template:
     src: Difficulty.eco
     dest: /opt/eco/Configs/Difficulty.eco
-  when: eco_install_result is not skipped
+  when: not verify_eco_version_result
 
 - name: Create Eco version lock file
   copy:
     content: "{{ eco_server_version }}"
     dest: /opt/eco/eco-version-lock
     mode: 0644
-  when: eco_install_result is not skipped
+  when: not verify_eco_version_result
 
 - name: Use a mono container to run Eco Server
   docker_container:
     name: 'eco-server'
     image: mono:{{ mono_docker_version }}
     state: started
+    restart_policy: always
     pull: no # will pull if missing
     ports:
     - '3000:3000/udp'
@@ -62,9 +73,3 @@
     volumes:
     - /opt/eco:/opt/eco:rw
     command: 'sh -c "cd /opt/eco && /usr/bin/mono EcoServer.exe -nogui"'
-
-- name: Force Eco server restart
-  docker_container:
-    name: 'eco-server'
-    restart: yes
-  when: eco_install_result is not skipped
