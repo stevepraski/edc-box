@@ -1,0 +1,20 @@
+---
+- name: Install misc things
+  apt:
+    name:
+      - python-pip
+      - mplayer
+      - curl
+      - rsync
+      - git
+      - htop
+      - vnstat
+      - tmux
+      - sshfs
+      - xosview
+      # - build-essential
+    state: present
+
+- name: Install streamlink
+  shell: |
+    pip install -U streamlink
